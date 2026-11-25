@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3eb">
+  <meta name="description" content="Explore aves das cinco regiões do Brasil. Descubra nomes, habitat, conservação e imagens de cada espécie.">
+  <title>Aves do Brasil — guia das cinco regiões</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-barra">
+      <div class="marca"><span class="marca-icone" aria-hidden="true">✳</span><span>AVIFAUNA BRASIL</span></div>
+      <button id="alternar-tema" class="alternar-tema" type="button" aria-pressed="false" aria-label="Alternar entre modo dia e modo noite">
+        <span class="tema-icone" aria-hidden="true">🌙</span>
+        <span class="tema-rotulo">Modo Noite</span>
+      </button>
+    </div>
+    <div class="abertura">
+      <div class="abertura-texto">
+        <p class="sobretitulo">UM GUIA PARA DESCOBRIR</p>
+        <h1>Aves do Brasil<span>.</span></h1>
+        <p class="sub">Da Caatinga à Amazônia: conheça as espécies que fazem do Brasil um lugar único.</p>
+      </div>
+      <div class="ilustracao" aria-hidden="true"><span id="mascote-principal">🐦</span><i id="mascote-astro">✳</i></div>
+    </div>
+
+    <form id="form-busca" class="busca" role="search" aria-label="Buscar aves">
+      <span class="busca-icone" aria-hidden="true">⌕</span>
+      <input id="campo-busca" type="search" required minlength="2" autocomplete="off" title="Atalho de teclado: / ou Ctrl+K"
+             placeholder="Buscar ave pelo nome (ex.: carcará, tucano, ararinha-azul)">
+      <span class="atalho-busca" aria-hidden="true"><kbd>/</kbd></span>
+      <select id="escopo" aria-label="Onde buscar">
+        <option value="brasil">Todo o Brasil</option>
+        <option value="norte">Só Norte</option>
+        <option value="nordeste">Só Nordeste</option>
+        <option value="centro-oeste">Só Centro-Oeste</option>
+        <option value="sudeste">Só Sudeste</option>
+        <option value="sul">Só Sul</option>
+      </select>
+      <button type="submit" class="botao">Buscar</button>
+    </form>
+  </header>
+
+  <nav class="abas" role="tablist">
+    <button class="aba" role="tab" data-aba="brasil" aria-controls="painel-brasil" aria-selected="true">🇧🇷 Brasil</button>
+    <button class="aba" role="tab" data-aba="norte" aria-controls="painel-norte" aria-selected="false">🌿 Norte</button>
+    <button class="aba" role="tab" data-aba="nordeste" aria-controls="painel-nordeste" aria-selected="false">🌵 Nordeste</button>
+    <button class="aba" role="tab" data-aba="centro-oeste" aria-controls="painel-centro-oeste" aria-selected="false">🌾 Centro-Oeste</button>
+    <button class="aba" role="tab" data-aba="sudeste" aria-controls="painel-sudeste" aria-selected="false">🌳 Sudeste</button>
+    <button class="aba" role="tab" data-aba="sul" aria-controls="painel-sul" aria-selected="false">🧉 Sul</button>
+    <button class="aba" role="tab" data-aba="comparador" aria-controls="painel-comparador" aria-selected="false">⚖️ Comparador</button>
+    <span class="abas-divisor" aria-hidden="true"></span>
+    <button class="aba aba-jogos" role="tab" data-aba="jogos" aria-controls="painel-jogos" aria-selected="false">🎮 Jogos</button>
+    <button class="aba aba-jogos" role="tab" data-aba="desafio" aria-controls="painel-desafio" aria-selected="false">🏆 Desafio das Aves</button>
+    <button class="aba" role="tab" data-aba="busca" aria-controls="painel-busca" aria-selected="false" id="aba-busca" hidden>🔎 Resultados</button>
+  </nav>
+
+  <main>
+    <section id="painel-brasil" class="painel" role="tabpanel" aria-label="Aves do Brasil">
+      <div class="cabecalho-secao"><div><p class="sobretitulo">ESPÉCIES PARA CONHECER</p><h2>Aves brasileiras em destaque</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <input id="filtro-brasil" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-brasil" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-brasil" aria-label="Ordenar aves do Brasil"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="brasil" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-brasil" class="grade"></div>
+      <div id="mais-brasil" class="paginacao" data-regiao="brasil"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar mais aves brasileiras.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+      <details id="catalogo-brasil" class="catalogo">
+        <summary>Explorar o catálogo completo da Wikipédia</summary>
+        <div class="catalogo-corpo"></div>
+      </details>
+    </section>
+
+    <section id="painel-norte" class="painel" role="tabpanel" aria-label="Aves do Norte" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">AMAZÔNIA E GRANDES RIOS</p><h2>Aves do Norte</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <p class="ajuda">Espécies registradas nos estados do Acre, Amapá, Amazonas, Pará, Rondônia, Roraima e Tocantins. A distribuição pode se sobrepor a outras regiões.</p>
+      <input id="filtro-norte" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-norte" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-norte" aria-label="Ordenar aves do Norte"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="norte" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-norte" class="grade"></div>
+      <div id="mais-norte" class="paginacao" data-regiao="norte"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar aves do Norte.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+    </section>
+
+    <section id="painel-nordeste" class="painel" role="tabpanel" aria-label="Aves do Nordeste" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">BIOMA E IDENTIDADE</p><h2>Aves do Nordeste</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <p class="ajuda">Espécies típicas da Caatinga, da Mata Atlântica nordestina e do litoral.</p>
+      <input id="filtro-nordeste" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-nordeste" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-nordeste" aria-label="Ordenar aves do Nordeste"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="nordeste" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-nordeste" class="grade"></div>
+      <div id="mais-nordeste" class="paginacao" data-regiao="nordeste"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar mais aves do Nordeste.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+      <details id="catalogo-nordeste" class="catalogo">
+        <summary>Explorar o catálogo completo da Wikipédia (Nordeste)</summary>
+        <div class="catalogo-corpo"></div>
+      </details>
+    </section>
+
+    <section id="painel-centro-oeste" class="painel" role="tabpanel" aria-label="Aves do Centro-Oeste" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">CERRADO E PANTANAL</p><h2>Aves do Centro-Oeste</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <p class="ajuda">Espécies registradas em Goiás, Mato Grosso, Mato Grosso do Sul e Distrito Federal. A distribuição pode se sobrepor a outras regiões.</p>
+      <input id="filtro-centro-oeste" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-centro-oeste" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-centro-oeste" aria-label="Ordenar aves do Centro-Oeste"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="centro-oeste" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-centro-oeste" class="grade"></div>
+      <div id="mais-centro-oeste" class="paginacao" data-regiao="centro-oeste"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar aves do Centro-Oeste.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+    </section>
+
+    <section id="painel-sudeste" class="painel" role="tabpanel" aria-label="Aves do Sudeste" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">MATA ATLÂNTICA E SERRAS</p><h2>Aves do Sudeste</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <p class="ajuda">Espécies registradas em Espírito Santo, Minas Gerais, Rio de Janeiro e São Paulo. A distribuição pode se sobrepor a outras regiões.</p>
+      <input id="filtro-sudeste" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-sudeste" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-sudeste" aria-label="Ordenar aves do Sudeste"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="sudeste" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-sudeste" class="grade"></div>
+      <div id="mais-sudeste" class="paginacao" data-regiao="sudeste"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar aves do Sudeste.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+    </section>
+
+    <section id="painel-sul" class="painel" role="tabpanel" aria-label="Aves do Sul" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">ARAUCÁRIAS E CAMPOS</p><h2>Aves do Sul</h2></div><span class="dica-clique">Selecione uma ave para explorar <span aria-hidden="true">↗</span></span></div>
+      <p class="ajuda">Espécies registradas em Paraná, Santa Catarina e Rio Grande do Sul. A distribuição pode se sobrepor a outras regiões.</p>
+      <input id="filtro-sul" class="filtro" type="search" placeholder="Filtrar esta lista pelo nome…" autocomplete="off">
+      <div class="controles-lista"><span id="contagem-sul" class="contagem" aria-live="polite"></span><label class="ordenacao">Ordenar <select id="ordem-sul" aria-label="Ordenar aves do Sul"><option value="original">Em destaque</option><option value="az">Nome: A–Z</option><option value="za">Nome: Z–A</option></select></label><button class="alternar-favoritos" type="button" data-favoritos="sul" aria-pressed="false">♡ Favoritos</button></div>
+      <div id="lista-sul" class="grade"></div>
+      <div id="mais-sul" class="paginacao" data-regiao="sul"><p class="estado-paginacao" role="status" aria-live="polite">Role a página para carregar aves do Sul.</p><button class="botao carregar-aves" type="button">Carregar mais aves</button></div>
+    </section>
+
+    <section id="painel-busca" class="painel" role="tabpanel" aria-label="Resultados da busca" hidden>
+      <div class="cabecalho-secao"><div><p class="sobretitulo">SUA BUSCA</p><h2 id="titulo-busca">Resultados</h2></div></div>
+      <p id="nota-busca" class="ajuda"></p>
+      <p id="contagem-busca" class="contagem" aria-live="polite"></p>
+      <div id="lista-busca" class="grade"></div>
+    </section>
+
+    <section id="painel-comparador" class="painel" role="tabpanel" aria-label="Comparador de aves" hidden>
+      <div class="cabecalho-secao">
+        <div>
+          <p class="sobretitulo">LADO A LADO</p>
+          <h2>Comparador de aves</h2>
+        </div>
+        <button id="btn-sortear-comparador" class="chip" type="button">🎲 Sortear par</button>
+      </div>
+      <p class="ajuda">Escolha duas espécies para comparar porte, cores, regiões, sub-regiões, habitat e canto.</p>
+      <div id="comparador-controles" class="comparador-controles"></div>
+      <div id="comparador-resultado" class="comparador-grade"></div>
+    </section>
+
+    <section id="painel-jogos" class="painel" role="tabpanel" aria-label="Jogos educativos sobre aves" hidden>
+      <div class="cabecalho-secao">
+        <div>
+          <p class="sobretitulo">APRENDA BRINCANDO</p>
+          <h2>Jogos da Avifauna</h2>
+        </div>
+        <span class="dica-clique">Escolha um jogo abaixo</span>
+      </div>
+      <div class="jogos-menu" role="tablist" aria-label="Escolher jogo">
+        <button class="jogo-tab ativo" type="button" data-jogo="flappy">🐦 Flappy Ave</button>
+        <button class="jogo-tab" type="button" data-jogo="forca">🪢 Jogo da Forca</button>
+        <button class="jogo-tab" type="button" data-jogo="quiz">❓ Quem sou eu?</button>
+        <button class="jogo-tab" type="button" data-jogo="quebra-cabeca">🧩 Quebra-Cabeça</button>
+        <button class="jogo-tab" type="button" data-jogo="palavras">🔎 Caça-Palavras</button>
+      </div>
+      <div id="palco-jogo" class="palco-jogo"></div>
+    </section>
+
+    <section id="painel-desafio" class="painel" role="tabpanel" aria-label="Desafio das Aves" hidden>
+      <div class="cabecalho-secao">
+        <div>
+          <p class="sobretitulo">PARTIDA LOCAL (2 A 4 JOGADORES)</p>
+          <h2>Desafio das Aves</h2>
+        </div>
+        <span class="dica-clique">Revezando no mesmo aparelho</span>
+      </div>
+      <div id="desafio-das-aves-raiz" class="desafio-raiz"></div>
+    </section>
+  </main>
+
+  <footer>
+    Textos da <a href="https://pt.wikipedia.org" target="_blank" rel="noopener">Wikipédia</a> (CC BY-SA 4.0)
+    e imagens do <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>.
+  </footer>
+
+  <div id="transicao-tema" class="transicao-tema" aria-hidden="true"></div>
+  <div id="notificacao" class="notificacao" role="status" aria-live="polite"></div>
+  <button id="voltar-topo" class="voltar-topo" type="button" aria-label="Voltar ao topo">↑</button>
+
+  <div id="detalhe" class="overlay" hidden>
+    <div class="folha" role="dialog" aria-modal="true" aria-label="Detalhes da ave">
+      <button id="fechar" class="fechar" type="button" aria-label="Fechar">✕</button>
+      <div id="detalhe-conteudo"></div>
+    </div>
+  </div>
+
+  <script src="dados-aves.js"></script>
+  <script src="app.js"></script>
+  <script src="jogos.js"></script>
+</body>
+</html>
