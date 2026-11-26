@@ -51,6 +51,7 @@ function selecionarJogo(nome) {
   else if (nome === "quiz") limparJogoAtual = montarQuiz(palco);
   else if (nome === "quebra-cabeca") limparJogoAtual = montarQuebraCabeca(palco);
   else if (nome === "palavras") limparJogoAtual = montarCacaPalavras(palco);
+  else if (nome === "termo") limparJogoAtual = montarTermoAves(palco);
 }
 
 /* ================== ÁUDIO SINTÉTICO (FALLBACK PARA JOGOS) ================== */
@@ -1577,6 +1578,15 @@ function iniciarAbaDesafio() {
     ));
 
     raiz.replaceChildren(
+      el("div", { class: "desafio-intro" },
+        el("strong", { text: "Como funciona o jogo" }),
+        el("ol", {},
+          el("li", { text: "Cada jogador joga na sua vez, passando o mesmo aparelho." }),
+          el("li", { text: "No seu turno, você tem até 12s para ler 3 cards de aves (com foto, canto e fatos)." }),
+          el("li", { text: "Depois, responde a uma pergunta (A–D) sobre uma dessas 3 aves." }),
+          el("li", { text: "Vence quem tiver mais acertos; em empate, ganha o menor tempo total (ou morte súbita)." })
+        )
+      ),
       el("p", { class: "ajuda", text: "Revezem o celular: estudem 3 aves por turno e respondam ao desafio!" }),
       el("div", { class: "desafio-campo" }, el("span", { class: "desafio-rotulo", text: "Número de jogadores" }), grupoNum),
       el("div", { class: "desafio-campo" }, el("span", { class: "desafio-rotulo", text: "Jogadores e avatares" }), contJogadores),
@@ -1639,12 +1649,19 @@ function iniciarAbaDesafio() {
   async function obterFotoRealAve(ave) {
     const emCache = fotosDesafioCache.get(ave.id);
     if (emCache !== undefined) return emCache;
-    const carregada = obterAvesParaJogos().find(a => norm(a.title) === norm(ave.nome));
+    const alvoNorm = norm(ave.nome);
+    const carregada = obterAvesParaJogos().find(a => {
+      const t = norm(a.title);
+      return t === alvoNorm || t.includes(alvoNorm) || alvoNorm.includes(t);
+    });
     if (carregada?.thumbnail?.source) {
       fotosDesafioCache.set(ave.id, carregada.thumbnail.source);
       return carregada.thumbnail.source;
     }
     if (typeof wiki !== "function") return null;
+    const parCurado = [...(typeof BR_DESTAQUES !== "undefined" ? BR_DESTAQUES : []), ...(typeof NE_DESTAQUES !== "undefined" ? NE_DESTAQUES : [])]
+      .find(item => norm(item[0]) === alvoNorm);
+    const tituloBusca = parCurado ? parCurado[1] : ave.nome;
     try {
       const d = await wiki({
         action: "query",
@@ -1652,7 +1669,7 @@ function iniciarAbaDesafio() {
         piprop: "thumbnail",
         pithumbsize: 360,
         redirects: 1,
-        titles: ave.nome
+        titles: tituloBusca
       });
       const src = d?.query?.pages?.[0]?.thumbnail?.source || null;
       fotosDesafioCache.set(ave.id, src);
@@ -1937,4 +1954,300 @@ function iniciarAbaDesafio() {
   renderConfig();
 }
 window.iniciarAbaDesafio = iniciarAbaDesafio;
+
+/* ================== 7. TERMO DAS AVES (1 A 4 PALAVRAS) ================== */
+const TERMO_AVES = [
+  // 5 letras
+  { palavra: "ARARA", exibicao: "Arara", grupo: "frutas", dica: "Ave colorida de bico forte que adora coquinhos e frutos." },
+  { palavra: "SABIA", exibicao: "Sabiá", grupo: "frutas", dica: "Pássaro famoso pelo canto melodioso que come frutinhas e minhocas." },
+  { palavra: "GUARA", exibicao: "Guará", grupo: "agua", dica: "Ave de plumagem avermelhada que vive em manguezais e áreas alagadas." },
+  { palavra: "GARCA", exibicao: "Garça", grupo: "agua", dica: "Ave pernalta que pesca peixes e girinos em rios e lagoas." },
+  { palavra: "URUBU", exibicao: "Urubu", grupo: "rapina", dica: "Ave de grande voo planado que ajuda a limpar a natureza." },
+  { palavra: "MUTUM", exibicao: "Mutum", grupo: "frutas", dica: "Ave florestal que caminha no solo buscando frutos caídos." },
+  { palavra: "CURIO", exibicao: "Curió", grupo: "sementes", dica: "Pequeno pássaro cantor que se alimenta de sementes de capim." },
+  { palavra: "BIGUA", exibicao: "Biguá", grupo: "agua", dica: "Ave aquática que mergulha fundo para capturar peixes." },
+  { palavra: "CISNE", exibicao: "Cisne", grupo: "agua", dica: "Ave aquática de pescoço longo que nada em lagos." },
+  { palavra: "POMBA", exibicao: "Pomba", grupo: "sementes", dica: "Ave comum que caminha no chão bicando grãos e sementes." },
+  { palavra: "PAVAO", exibicao: "Pavão", grupo: "sementes", dica: "Ave vistosa de cauda em leque que procura grãos e insetos no solo." },
+  { palavra: "GANSO", exibicao: "Ganso", grupo: "agua", dica: "Ave aquática de bico largo que pasta perto de lagos e rios." },
+  // 6 letras
+  { palavra: "TUCANO", exibicao: "Tucano", grupo: "frutas", dica: "Ave de bico grande e colorido que come frutos na copa das árvores." },
+  { palavra: "CORUJA", exibicao: "Coruja", grupo: "rapina", dica: "Ave noturna com ótima visão e audição para caçar no escuro." },
+  { palavra: "GAVIAO", exibicao: "Gavião", grupo: "rapina", dica: "Ave de rapina ágil que caça insetos, lagartos e pequenos animais." },
+  { palavra: "TUIUIU", exibicao: "Tuiuiú", grupo: "agua", dica: "Ave símbolo do Pantanal que pesca em áreas alagadas." },
+  { palavra: "GRALHA", exibicao: "Gralha", grupo: "frutas", dica: "Ave inteligente que vive em bandos e ajuda a espalhar sementes." },
+  { palavra: "PARDAL", exibicao: "Pardal", grupo: "sementes", dica: "Pequena ave urbana muito comum que bica migalhas e sementes." },
+  { palavra: "BICUDO", exibicao: "Bicudo", grupo: "sementes", dica: "Pássaro de bico robusto especializado em quebrar sementes duras." },
+  { palavra: "FALCAO", exibicao: "Falcão", grupo: "rapina", dica: "Ave de rapina veloz conhecida por mergulhos rápidos no ar." },
+  { palavra: "JABURU", exibicao: "Jaburu", grupo: "agua", dica: "Ave alta de pernas compridas que caça peixes e rãs na água." },
+  // 7 letras
+  { palavra: "PINGUIM", exibicao: "Pinguim", grupo: "agua", dica: "Ave marinha que não voa, mas nada muito bem atrás de peixes." },
+  { palavra: "MARRECO", exibicao: "Marreco", grupo: "agua", dica: "Ave aquática parecida com o pato que vive em lagoas e banhados." },
+  { palavra: "SERIEMA", exibicao: "Seriema", grupo: "rapina", dica: "Ave corredora de campos abertos que caça lagartos e serpentes." },
+  { palavra: "CARCARA", exibicao: "Carcará", grupo: "rapina", dica: "Ave de rapina comum em campos e estradas de todo o Brasil." },
+  { palavra: "CONCRIZ", exibicao: "Concriz", grupo: "frutas", dica: "Ave colorida da Caatinga que gosta de frutos, néctar e insetos." },
+  { palavra: "AVOANTE", exibicao: "Avoante", grupo: "sementes", dica: "Ave que forma grandes bandos no Nordeste em busca de sementes." },
+  { palavra: "CANARIO", exibicao: "Canário", grupo: "sementes", dica: "Pássaro amarelinho que come sementes de capim nos campos." },
+  { palavra: "COLEIRO", exibicao: "Coleiro", grupo: "sementes", dica: "Pássaro pequeno que vive em áreas de capim comendo sementes." },
+  { palavra: "CARDEAL", exibicao: "Cardeal", grupo: "sementes", dica: "Pássaro de topete vistoso que se alimenta de grãos e insetos." },
+  { palavra: "SANHACO", exibicao: "Sanhaço", grupo: "frutas", dica: "Pássaro frequente em pomares que adora frutas macias." },
+  { palavra: "MAITACA", exibicao: "Maitaca", grupo: "frutas", dica: "Ave verde barulhenta que voa em bandos atrás de frutos e sementes." }
+];
+
+function avaliarPalpiteTermo(palpite, alvo) {
+  const res = Array(alvo.length).fill("errada");
+  const restantes = {};
+  for (let i = 0; i < alvo.length; i++) {
+    if (palpite[i] === alvo[i]) res[i] = "certa";
+    else restantes[alvo[i]] = (restantes[alvo[i]] || 0) + 1;
+  }
+  for (let i = 0; i < alvo.length; i++) {
+    if (res[i] === "certa") continue;
+    const ch = palpite[i];
+    if (restantes[ch] > 0) {
+      res[i] = "lugar";
+      restantes[ch]--;
+    }
+  }
+  return res;
+}
+
+function montarTermoAves(palco) {
+  const MAX_TENTATIVAS = 6;
+  let qtdPalavras = 1;
+  let alvos = [];
+  let tentativas = [];
+  let atual = "";
+  let encerrado = false;
+  let tamanhoPalavra = 5;
+  let dicasAbertas = [];
+  let pesquisasAbertas = [];
+  let listasPesquisa = [];
+
+  const statusEl = el("p", { class: "contagem" });
+  const feedbackEl = el("div", { class: "quiz-feedback" });
+  const tabuleirosEl = el("div", { class: "termo-tabuleiros" });
+  const tecladoEl = el("div", { class: "termo-teclado" });
+
+  const selModo = el("select", {
+    class: "jogo-select",
+    "aria-label": "Quantidade de palavras no Termo das Aves",
+    onchange: e => {
+      qtdPalavras = Number(e.target.value);
+      iniciar();
+    }
+  },
+    el("option", { value: "1", text: "1 palavra (Clássico)", selected: true }),
+    el("option", { value: "2", text: "2 palavras (Dueto)" }),
+    el("option", { value: "3", text: "3 palavras (Trio)" }),
+    el("option", { value: "4", text: "4 palavras (Quarteto)" })
+  );
+
+  const btnNovo = el("button", {
+    class: "botao", type: "button", text: "Novo jogo", onclick: () => iniciar()
+  });
+
+  palco.replaceChildren(
+    el("div", { class: "jogo-cabecalho" },
+      el("div", {},
+        el("h3", { text: "Termo das Aves" }),
+        el("p", { class: "ajuda", text: "Descubra o nome das aves em até 6 tentativas! Use o botão 💡 Dica em cada quadro se precisar de ajuda." })
+      )
+    ),
+    el("div", { class: "flappy-controles" },
+      el("label", { class: "campo-detalhe" }, el("span", { text: "Modo" }), selModo),
+      btnNovo
+    ),
+    statusEl,
+    tabuleirosEl,
+    feedbackEl,
+    tecladoEl
+  );
+
+  function iniciar() {
+    const tamanhos = [5, 6, 7];
+    tamanhoPalavra = tamanhos[Math.floor(Math.random() * tamanhos.length)];
+    const candidatas = embaralhar(TERMO_AVES.filter(a => a.palavra.length === tamanhoPalavra));
+    alvos = candidatas.slice(0, qtdPalavras);
+    tentativas = [];
+    atual = "";
+    encerrado = false;
+    dicasAbertas = Array(qtdPalavras).fill(false);
+    pesquisasAbertas = Array(qtdPalavras).fill(false);
+    listasPesquisa = alvos.map(alvo => {
+      const mesmoGrupo = embaralhar(TERMO_AVES.filter(a => a.grupo === alvo.grupo && a.palavra !== alvo.palavra));
+      const extras = embaralhar(TERMO_AVES.filter(a => a.grupo !== alvo.grupo && a.palavra !== alvo.palavra));
+      return embaralhar([alvo, ...mesmoGrupo, ...extras].slice(0, 10));
+    });
+    feedbackEl.replaceChildren();
+    renderizar();
+  }
+
+  function estadoQuadros() {
+    return alvos.map(alvo => {
+      const idxAcerto = tentativas.findIndex(t => t === alvo.palavra);
+      return {
+        alvo,
+        resolvido: idxAcerto !== -1,
+        linhasAte: idxAcerto !== -1 ? idxAcerto + 1 : tentativas.length
+      };
+    });
+  }
+
+  function melhorEstadoTecla(letra, quadros) {
+    const prioridade = { certa: 3, lugar: 2, errada: 1, "": 0 };
+    let melhor = "";
+    quadros.forEach(q => {
+      const limite = q.resolvido ? q.linhasAte : tentativas.length;
+      for (let i = 0; i < limite; i++) {
+        const palpite = tentativas[i];
+        const aval = avaliarPalpiteTermo(palpite, q.alvo.palavra);
+        for (let c = 0; c < palpite.length; c++) {
+          if (palpite[c] === letra && prioridade[aval[c]] > prioridade[melhor]) {
+            melhor = aval[c];
+          }
+        }
+      }
+    });
+    return melhor;
+  }
+
+  function renderizar() {
+    const quadros = estadoQuadros();
+    const todosResolvidos = quadros.every(q => q.resolvido);
+    encerrado = todosResolvidos || tentativas.length >= MAX_TENTATIVAS;
+
+    statusEl.textContent = `Tentativa ${Math.min(tentativas.length + (encerrado ? 0 : 1), MAX_TENTATIVAS)}/${MAX_TENTATIVAS} · ${tamanhoPalavra} letras · ${qtdPalavras} ${qtdPalavras === 1 ? "ave" : "aves"}`;
+    tabuleirosEl.style.setProperty("--termo-cols", qtdPalavras === 1 ? 1 : 2);
+
+    tabuleirosEl.replaceChildren(...quadros.map((q, qIdx) => {
+      const linhas = [];
+      for (let r = 0; r < MAX_TENTATIVAS; r++) {
+        const celulas = [];
+        const jaEnviada = r < q.linhasAte;
+        const ehAtual = !encerrado && !q.resolvido && r === tentativas.length;
+        const palavraLinha = jaEnviada ? tentativas[r] : (ehAtual ? atual : "");
+        const aval = jaEnviada ? avaliarPalpiteTermo(palavraLinha, q.alvo.palavra) : null;
+
+        for (let c = 0; c < tamanhoPalavra; c++) {
+          const ch = palavraLinha[c] || "";
+          const clsEstado = aval ? aval[c] : (ch ? "preenchida" : "");
+          celulas.push(el("div", { class: `termo-celula ${clsEstado}`, text: ch }));
+        }
+        linhas.push(el("div", { class: "termo-linha" }, celulas));
+      }
+
+      const grade = el("div", { class: "termo-grade", style: `--termo-len:${tamanhoPalavra}` }, linhas);
+      const btnDica = el("button", {
+        type: "button",
+        class: "termo-btn-dica",
+        text: dicasAbertas[qIdx] ? "Ocultar dica" : "💡 Dica",
+        onclick: () => {
+          dicasAbertas[qIdx] = !dicasAbertas[qIdx];
+          renderizar();
+        }
+      });
+
+      const dicaBox = dicasAbertas[qIdx]
+        ? el("div", { class: "termo-dica-txt" },
+            el("span", { text: q.alvo.dica }),
+            el("button", {
+              type: "button",
+              class: "termo-btn-pesquisar",
+              text: pesquisasAbertas[qIdx] ? "Ocultar aves parecidas" : "🔍 Pesquisar aves com essa característica",
+              onclick: () => {
+                pesquisasAbertas[qIdx] = !pesquisasAbertas[qIdx];
+                renderizar();
+              }
+            }),
+            pesquisasAbertas[qIdx]
+              ? el("div", { class: "termo-pesquisa-lista" },
+                  listasPesquisa[qIdx].map(item => el("span", { class: "termo-pesquisa-chip", text: item.exibicao }))
+                )
+              : null
+          )
+        : null;
+
+      return el("div", { class: `termo-quadro ${q.resolvido ? "resolvido" : ""}` },
+        el("div", { class: "termo-quadro-topo" },
+          el("span", { text: q.resolvido ? `✔ ${q.alvo.exibicao}` : `Ave ${qIdx + 1}` }),
+          btnDica
+        ),
+        dicaBox,
+        grade
+      );
+    }));
+
+    const linhasTeclado = [
+      "QWERTYUIOP".split(""),
+      "ASDFGHJKL".split(""),
+      ["ENTER", ..."ZXCVBNM".split(""), "⌫"]
+    ];
+    tecladoEl.replaceChildren(...linhasTeclado.map(linha =>
+      el("div", { class: "termo-teclado-linha" }, linha.map(tecla => {
+        const ehEspecial = tecla === "ENTER" || tecla === "⌫";
+        const estado = ehEspecial ? "" : melhorEstadoTecla(tecla, quadros);
+        return el("button", {
+          type: "button",
+          class: `termo-tecla ${ehEspecial ? "larga" : ""} ${estado}`,
+          text: tecla,
+          disabled: encerrado,
+          onclick: () => processarTecla(tecla)
+        });
+      }))
+    ));
+
+    if (encerrado) {
+      const nomes = alvos.map(a => a.exibicao).join(", ");
+      feedbackEl.replaceChildren(
+        el("p", {
+          class: todosResolvidos ? "quiz-acerto" : "erro",
+          text: todosResolvidos
+            ? `🎉 Parabéns! Você acertou: ${nomes}!`
+            : `Fim das 6 tentativas! As aves eram: ${nomes}.`
+        })
+      );
+    } else {
+      feedbackEl.replaceChildren();
+    }
+  }
+
+  function processarTecla(tecla) {
+    if (encerrado) return;
+    if (tecla === "⌫" || tecla === "BACKSPACE") {
+      if (atual.length > 0) {
+        atual = atual.slice(0, -1);
+        renderizar();
+      }
+      return;
+    }
+    if (tecla === "ENTER") {
+      if (atual.length < tamanhoPalavra) {
+        notificar(`Complete as ${tamanhoPalavra} letras antes de enviar!`);
+        return;
+      }
+      tentativas.push(atual);
+      atual = "";
+      renderizar();
+      return;
+    }
+    if (/^[A-Z]$/.test(tecla) && atual.length < tamanhoPalavra) {
+      atual += tecla;
+      renderizar();
+    }
+  }
+
+  const aoTeclar = e => {
+    if ($("painel-jogos").hidden || jogoAtual !== "termo") return;
+    if (document.activeElement?.matches("input, select, textarea")) return;
+    if (e.key === "Backspace") { e.preventDefault(); processarTecla("BACKSPACE"); return; }
+    if (e.key === "Enter") { e.preventDefault(); processarTecla("ENTER"); return; }
+    const l = e.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    if (/^[A-Z]$/.test(l)) processarTecla(l);
+  };
+  document.addEventListener("keydown", aoTeclar);
+
+  iniciar();
+  return () => document.removeEventListener("keydown", aoTeclar);
+}
 

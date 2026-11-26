@@ -37,11 +37,40 @@ h1, h2, h3 { font-family: Manrope, "DM Sans", sans-serif; }
 h1 { margin: 0; font-size: clamp(2.35rem, 5.2vw, 4rem); line-height: 1.08; letter-spacing: -.055em; }
 h1 span { color: var(--limão); }
 .sub { max-width: 510px; margin: 12px 0 0; color: #d2ddd4; font-size: 1rem; }
-.ilustracao { position: relative; z-index: 1; display: grid; place-items: center; width: 142px; height: 142px; flex: 0 0 142px; margin-right: 5%; border: 1px solid rgba(255,255,255,.17); border-radius: 50%; background: rgba(255,255,255,.06); }
+.ilustracao { position: relative; z-index: 1; display: grid; place-items: center; width: 142px; height: 142px; flex: 0 0 142px; margin-right: 5%; border: 1px solid rgba(255,255,255,.17); border-radius: 50%; background: rgba(255,255,255,.06); cursor: pointer; user-select: none; transition: transform .2s ease-out, box-shadow .25s ease-out, border-color .25s ease-out; }
+.ilustracao:hover { transform: scale(1.04); border-color: rgba(217, 235, 115, .55); }
 .ilustracao span { font-size: 4.8rem; transform: rotate(-8deg); filter: drop-shadow(0 10px 12px rgba(0,0,0,.18)); transition: transform .35s cubic-bezier(.22, 1, .36, 1), opacity .22s ease-out; }
 .ilustracao.trocando span { opacity: 0; transform: scale(.86) rotate(-22deg); }
 .ilustracao i { position: absolute; top: 10px; right: 13px; color: var(--limão); font-size: 1.5rem; font-style: normal; transition: transform .35s cubic-bezier(.22, 1, .36, 1), opacity .22s ease-out; }
 .ilustracao.trocando i { opacity: 0; transform: scale(.8) rotate(25deg); }
+.ilustracao.mascote-pulso { animation: mascotePulso .38s cubic-bezier(.22, 1, .36, 1); }
+.ilustracao.mascote-festa {
+  border-color: var(--limão);
+  box-shadow: 0 0 0 8px rgba(217, 235, 115, .25), 0 0 28px rgba(217, 235, 115, .45);
+  animation: mascoteFesta .9s cubic-bezier(.22, 1, .36, 1);
+}
+:root[data-tema="escuro"] .ilustracao.mascote-festa {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 8px rgba(167, 139, 250, .28), 0 0 30px rgba(139, 92, 246, .55);
+}
+.ilustracao.mascote-festa i { animation: astroGiro .9s ease-out; }
+@keyframes mascotePulso {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.14) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
+@keyframes mascoteFesta {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.18) rotate(-14deg) translateY(-8px); }
+  55% { transform: scale(1.14) rotate(12deg) translateY(-4px); }
+  80% { transform: scale(1.06) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes astroGiro {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.6) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
 
 .busca { display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 8px; border: 1px solid var(--borda); border-radius: 16px; background: var(--papel); box-shadow: 0 5px 20px rgba(25,55,43,.04); }
 .busca-icone { width: 35px; text-align: center; color: var(--suave); font-size: 1.8rem; line-height: 1; transform: rotate(-15deg); }
@@ -181,7 +210,8 @@ footer { border-top: 1px solid var(--borda); padding: 22px 18px max(30px, env(sa
   main { padding-right: 12px; padding-left: 12px; }
   .abertura { padding: 21px 17px; }
   .busca .botao { padding-right: 14px; padding-left: 14px; }
-  .ilustracao { display: none; }
+  .ilustracao { width: 58px; height: 58px; flex-basis: 58px; }
+  .ilustracao span { font-size: 2.2rem; }
   .grade { grid-template-columns: 1fr; }
   .card { display: block; }
   .card-main { display: grid; grid-template-columns: 105px 1fr; }
@@ -427,6 +457,17 @@ footer { border-top: 1px solid var(--borda); padding: 22px 18px max(30px, env(sa
   padding: 18px 16px;
   box-shadow: var(--sombra);
 }
+.desafio-intro {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  font-size: .86rem;
+}
+.desafio-intro strong { display: block; margin-bottom: 5px; color: var(--verde-escuro); }
+.desafio-intro ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+:root[data-tema="escuro"] .desafio-intro strong { color: #ede9fe; }
 .desafio-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .desafio-rotulo { font-size: .82rem; font-weight: 700; color: var(--verde-escuro); }
 .desafio-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -529,3 +570,152 @@ footer { border-top: 1px solid var(--borda); padding: 22px 18px max(30px, env(sa
 :root[data-tema="escuro"] .desafio-revisao-item { background: #3b1720; border-color: #f87171; color: #fecaca; }
 :root[data-tema="escuro"] .desafio-feedback-resp,
 :root[data-tema="escuro"] .desafio-feedback-exp { color: #f5f3ff; }
+
+/* ================== TERMO DAS AVES ================== */
+.termo-tabuleiros {
+  display: grid;
+  grid-template-columns: repeat(var(--termo-cols, 1), minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px auto;
+  max-width: 680px;
+}
+.termo-quadro {
+  width: 100%;
+  max-width: 310px;
+  margin: 0 auto;
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 10px;
+  background: var(--fundo);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.termo-quadro.resolvido { border-color: #2b8a3e; background: #f0f9eb; }
+.termo-quadro-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 800;
+}
+.termo-btn-dica {
+  min-height: 30px;
+  padding: 3px 9px;
+  border: 1px solid var(--verde);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--verde);
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.termo-dica-txt {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  font-size: .78rem;
+  line-height: 1.35;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.termo-btn-pesquisar {
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid var(--verde);
+  border-radius: 999px;
+  background: var(--fundo);
+  color: var(--verde);
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.termo-pesquisa-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.termo-pesquisa-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  font-size: .72rem;
+  font-weight: 700;
+}
+.termo-grade {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+.termo-linha {
+  display: grid;
+  grid-template-columns: repeat(var(--termo-len, 5), minmax(0, 1fr));
+  gap: 5px;
+}
+.termo-celula {
+  aspect-ratio: 1 / 1;
+  max-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--borda);
+  border-radius: 8px;
+  background: var(--papel);
+  color: var(--texto);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  user-select: none;
+}
+.termo-celula.preenchida { border-color: var(--verde); }
+.termo-celula.certa { background: #2b8a3e; border-color: #2b8a3e; color: #fff; }
+.termo-celula.lugar { background: #e6a700; border-color: #e6a700; color: #fff; }
+.termo-celula.errada { background: #7b848c; border-color: #7b848c; color: #fff; }
+.termo-teclado {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+  margin: 14px auto 0;
+}
+.termo-teclado-linha {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.termo-tecla {
+  min-width: 0;
+  height: 54px;
+  padding: 0 4px;
+  flex: 1;
+  max-width: 54px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--fundo);
+  color: var(--texto);
+  font-weight: 800;
+  font-size: clamp(.9rem, 3.2vw, 1.08rem);
+  cursor: pointer;
+}
+.termo-tecla.larga { max-width: 98px; flex: 1.9; font-size: clamp(.6rem, 2.2vw, .85rem); letter-spacing: -.02em; }
+.termo-tecla.certa { background: #2b8a3e; border-color: #2b8a3e; color: #fff; }
+.termo-tecla.lugar { background: #e6a700; border-color: #e6a700; color: #fff; }
+.termo-tecla.errada { background: #adb5bd; border-color: #adb5bd; color: #fff; opacity: .75; }
+@media (max-width: 680px) {
+  .termo-tabuleiros { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .termo-teclado-linha { gap: 3px; }
+  .termo-tecla { height: 48px; padding: 0 2px; border-radius: 8px; }
+  .termo-tecla.larga { flex: 2; font-size: .62rem; }
+}
+:root[data-tema="escuro"] .termo-quadro.resolvido { background: #1c3b2e; border-color: #34d399; }
+:root[data-tema="escuro"] .termo-tecla.errada { background: #2a2244; border-color: #3d3261; color: #8c81ad; }

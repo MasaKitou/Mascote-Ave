@@ -158,7 +158,10 @@ async function wiki(params, base = WIKI_PT) {
 }
 
 const semPrefixo = titulo => titulo.replace(/^[^:]+:/, "");
-const resumoCurto = (t = "") => (t.length > 130 ? t.slice(0, 127).trim() + "…" : t);
+const resumoCurto = (t = "") => {
+  const s = String(t ?? "");
+  return s.length > 130 ? s.slice(0, 127).trim() + "…" : s;
+};
 
 // Aves já confirmadas (vindas das listas curadas) — ajudam a filtrar a busca
 const conhecidosPorRegiao = Object.fromEntries(Object.keys(CATEGORIAS).map(chave => [chave, new Set()]));
@@ -202,6 +205,77 @@ function salvarFavoritos() {
   catch (_) { notificar("Não foi possível salvar os favoritos neste navegador."); }
 }
 
+const REGEX_FOTO_PLACEHOLDER = /(falta[_ -]imagem|sem[_ -]imagem|no[_ -]image|placeholder|imagem[_ -]indisponivel)/i;
+
+function temFotoReal(p) {
+  const src = p?.thumbnail?.source || "";
+  const livre = p?.pageprops?.page_image_free || "";
+  if (!src) return false;
+  if (REGEX_FOTO_PLACEHOLDER.test(src) || REGEX_FOTO_PLACEHOLDER.test(livre)) {
+    p.thumbnail = null;
+    return false;
+  }
+  return true;
+}
+
+const urlCommons = (arquivo, largura = 360) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(arquivo)}?width=${largura}`;
+
+async function buscarFotoINaturalist(cientifico) {
+  if (!cientifico) return null;
+  const consultas = [cientifico];
+  const partes = cientifico.trim().split(/\s+/);
+  if (partes.length > 2) consultas.push(partes.slice(0, 2).join(" "));
+  for (const termo of consultas) {
+    try {
+      const resp = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(termo)}&taxon_id=3&per_page=1`);
+      if (resp.ok) {
+        const d = await resp.json();
+        const foto = d?.results?.[0]?.default_photo?.medium_url;
+        if (foto) return foto;
+      }
+      const obsResp = await fetch(`https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(termo)}&photos=true&per_page=1`);
+      if (obsResp.ok) {
+        const od = await obsResp.json();
+        const obsFoto = od?.results?.[0]?.photos?.[0]?.url;
+        if (obsFoto) return obsFoto.replace("square.", "medium.");
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+async function completarFotosFaltantes(paginas, largura = 360) {
+  paginas.forEach(p => { if (p) temFotoReal(p); });
+  const semFoto = paginas.filter(p => p && !temFotoReal(p) && p.pageprops?.wikibase_item);
+  if (!semFoto.length) return;
+  const qids = [...new Set(semFoto.map(p => p.pageprops.wikibase_item))];
+  const cientificos = new Map();
+  try {
+    for (let i = 0; i < qids.length; i += 40) {
+      const lote = qids.slice(i, i + 40);
+      const d = await wiki({ action: "wbgetentities", ids: lote.join("|"), props: "claims" }, WIKIDATA);
+      const ents = d?.entities || {};
+      semFoto.forEach(p => {
+        const qid = p.pageprops.wikibase_item;
+        const claims = ents[qid]?.claims || {};
+        const arq = claims.P18?.[0]?.mainsnak?.datavalue?.value;
+        if (arq) p.thumbnail = { source: urlCommons(arq, largura) };
+        const cien = claims.P225?.[0]?.mainsnak?.datavalue?.value;
+        if (cien) cientificos.set(p.pageid, cien);
+      });
+    }
+  } catch (_) {}
+
+  const aindaSemFoto = semFoto.filter(p => !p.thumbnail?.source && cientificos.has(p.pageid));
+  if (aindaSemFoto.length) {
+    await Promise.all(aindaSemFoto.slice(0, 8).map(async p => {
+      const foto = await buscarFotoINaturalist(cientificos.get(p.pageid));
+      if (foto) p.thumbnail = { source: foto };
+    }));
+  }
+}
+
 /* ================== CARREGAR RESUMOS ================== */
 async function carregarResumos(titulos, incluirCategorias = false) {
   const lotes = [];
@@ -230,6 +304,7 @@ async function carregarResumos(titulos, incluirCategorias = false) {
       if (porTitulo.has(x)) resultado.set(t, porTitulo.get(x));
     });
   });
+  await completarFotosFaltantes([...resultado.values()]);
   return resultado;
 }
 
@@ -255,12 +330,34 @@ async function resolverCurados(lista) {
 }
 
 /* ================== CARDS E LISTAS ================== */
+function criarImgComFallback(src, props, aoFalhar) {
+  const img = el("img", { ...props, src });
+  let tentativas = 0;
+  img.addEventListener("error", () => {
+    if (tentativas < 1) {
+      tentativas++;
+      setTimeout(() => {
+        if (!img.isConnected) return;
+        img.src = "";
+        img.src = src;
+      }, 650);
+      return;
+    }
+    if (typeof aoFalhar === "function") aoFalhar(img);
+  });
+  return img;
+}
+
 function criarCard(p) {
   const foto = p.thumbnail && p.thumbnail.source;
   const salvo = favoritos.has(norm(p.title));
+  const semFoto = () => el("div", { class: "sem-foto", text: "🐦", "aria-hidden": "true" });
+  const midia = foto
+    ? criarImgComFallback(foto, { alt: "", loading: "lazy" }, img => img.replaceWith(semFoto()))
+    : semFoto();
   return el("article", { class: "card", "data-titulo": p.title },
     el("button", { class: "card-main", type: "button", "aria-label": `Ver detalhes de ${p.title}`, onclick: () => abrirAve(p.title) },
-      foto ? el("img", { src: foto, alt: "", loading: "lazy" }) : el("div", { class: "sem-foto", text: "🐦", "aria-hidden": "true" }),
+      midia,
       el("div", { class: "card-corpo" },
         el("h3", { text: p.title }),
         el("p", { text: resumoCurto(p.extract) })
@@ -331,7 +428,16 @@ function atualizarLista(chave) {
   if (mostrarSoFavoritos[chave]) paginas = paginas.filter(p => favoritos.has(norm(p.title)));
   const ordem = $("ordem-" + chave).value;
   if (ordem === "az") paginas.sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
-  if (ordem === "za") paginas.sort((a, b) => b.title.localeCompare(a.title, "pt-BR"));
+  else if (ordem === "za") paginas.sort((a, b) => b.title.localeCompare(a.title, "pt-BR"));
+  else {
+    const comFoto = paginas.filter(p => temFotoReal(p));
+    const semFoto = paginas.filter(p => !temFotoReal(p));
+    const semFiltroAtivo = !filtroNome && !mostrarSoFavoritos[chave]
+      && !(det.cor || det.regiao || det.subregiao || det.local || det.porte);
+    const exibirSemFoto = chave !== "brasil" || !semFiltroAtivo
+      || descoberta.brasil.terminou || comFoto.length >= 120;
+    paginas = exibirSemFoto ? [...comFoto, ...semFoto] : comFoto;
+  }
   $("contagem-" + chave).textContent = `${paginas.length} ${paginas.length === 1 ? "espécie" : "espécies"}`;
   preencher($("lista-" + chave), paginas, mostrarSoFavoritos[chave] ? "Você ainda não salvou favoritos nesta lista." : "Nenhuma ave combina com os filtros.");
 }
@@ -474,21 +580,7 @@ async function carregarMaisAves(chave) {
       });
       cache[chave].push(...novas);
 
-      const filtro = $("filtro-" + chave);
-      const filtroNome = filtro ? norm(filtro.value) : "";
-      const det = filtrosDetalhados[chave] || {};
-      const temDetalhado = Boolean(det.cor || det.regiao || det.subregiao || det.local || det.porte);
-      const podeAcrescentar = $("ordem-" + chave).value === "original"
-        && !mostrarSoFavoritos[chave] && !filtroNome && !temDetalhado;
-      if (podeAcrescentar) {
-        const grade = $("lista-" + chave);
-        const vazia = grade.querySelector(".aviso");
-        if (vazia) grade.replaceChildren();
-        novas.forEach(pagina => grade.append(criarCard(pagina)));
-        $("contagem-" + chave).textContent = `${cache[chave].length} espécies carregadas`;
-      } else {
-        atualizarLista(chave);
-      }
+      atualizarLista(chave);
       mensagem.textContent = novas.length
         ? `Mais ${novas.length} ${novas.length === 1 ? "espécie carregada" : "espécies carregadas"}. Continue descendo para explorar.`
         : `Este lote não trouxe aves com distribuição ${chave === "brasil" ? "brasileira" : `na região ${NOMES_REGIOES[chave]}`} identificada. Continue buscando; ${estado.titulosVistos.size} artigos verificados.`;
@@ -618,8 +710,11 @@ function montarFiltrosDetalhados(chave) {
   envoltorio.append(painelDet);
 }
 
+let jogosDesbloqueados = false;
+
 /* ================== ABAS ================== */
 function mostrarAba(nome) {
+  if ((nome === "jogos" || nome === "desafio") && !jogosDesbloqueados) return;
   document.querySelectorAll(".aba").forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === nome)));
   document.querySelectorAll(".painel").forEach(p => { p.hidden = p.id !== "painel-" + nome; });
   if (nome !== "jogos" && nome !== "desafio" && typeof window.pararSomJogo === "function") window.pararSomJogo();
@@ -645,8 +740,13 @@ for (const chave of Object.keys(CATEGORIAS)) {
 /* ================== BUSCA ================== */
 const categoriasDe = p => (p.categories || []).map(c => semPrefixo(c.title));
 
+const REGEX_NAO_ESPECIE = /^(lista\s+d[aeo]s?\b|anexo:|avifauna\b|aves\s+d[aeo]s?\b|ornitologia\b|observa[cç][aã]o\s+de\s+aves|parque\b|reserva\b|campus\b|museu\b|zool[oó]gico\b|projeto\b|instituto\b|dia\s+d[aeo]\b|hist[oó]ria\s+d)/i;
+const REGEX_EXTRATO_LISTA = /^(esta\s+(?:[eé]\s+uma\s+)?lista|lista\s+d[aeo]s?\s+aves|este\s+(?:artigo|anexo)\s+(?:lista|re[uú]ne))/i;
+
 function ehAve(p) {
   if (p.pageprops?.disambiguation !== undefined) return false;
+  if (REGEX_NAO_ESPECIE.test(p.title || "")) return false;
+  if (REGEX_EXTRATO_LISTA.test((p.extract || "").trim())) return false;
   if (REGEX_GRUPO_AVE.test(p.extract || "")) return false;
   const cats = categoriasDe(p);
   return cats.some(c => REGEX_AVE.test(c)) || REGEX_AVE_TEXTO.test(p.extract || "") || /\baves?\b|\bp[aá]ssaros?\b/i.test(p.extract || "");
@@ -692,7 +792,9 @@ async function buscarNaWikipedia(termo) {
   respostas.slice(1).filter(r => r.status === "fulfilled").forEach(r => {
     (r.value.query?.pages || []).forEach(p => { if (!p.missing && !p.invalid && !mapa.has(p.pageid)) mapa.set(p.pageid, p); });
   });
-  return [...mapa.values()].sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
+  const saida = [...mapa.values()].sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
+  await completarFotosFaltantes(saida.filter(ehAve));
+  return saida;
 }
 
 $("form-busca").addEventListener("submit", async e => {
@@ -794,13 +896,14 @@ async function carregarWikidata(qid) {
   const audio = valores("P51")[0] || null;
   const enTitle = ent.sitelinks?.enwiki?.title || null;
   const statusId = valores("P141")[0]?.id;
+  const imagem = valores("P18")[0] || null;
   let status = null;
   if (statusId) {
     const s = await wiki({ action: "wbgetentities", ids: statusId, props: "labels", languages: "pt|en" }, WIKIDATA);
     const rotulos = s.entities?.[statusId]?.labels;
     status = rotulos?.pt?.value || rotulos?.en?.value || null;
   }
-  return { cientifico, populares: [...new Set(populares)], status, audio, enTitle };
+  return { cientifico, populares: [...new Set(populares)], status, audio, enTitle, imagem };
 }
 
 let tokenAbertura = 0;
@@ -834,6 +937,12 @@ async function abrirAve(titulo) {
       carregarWikidata(p.pageprops && p.pageprops.wikibase_item).catch(() => null)
     ]);
     if (meu !== tokenAbertura) return; // o usuário abriu outra ave nesse meio-tempo
+    if (!temFotoReal(p) && wd?.imagem) p.thumbnail = { source: urlCommons(wd.imagem, 900) };
+    if (!temFotoReal(p) && wd?.cientifico) {
+      const fotoInat = await buscarFotoINaturalist(wd.cientifico);
+      if (meu !== tokenAbertura) return;
+      if (fotoInat) p.thumbnail = { source: fotoInat };
+    }
     renderizarDetalhe(conteudo, p, imagens, wd);
   } catch (e) {
     if (meu !== tokenAbertura) return;
@@ -891,10 +1000,10 @@ function renderizarDetalhe(c, p, imagens, wd) {
   const foto = p.thumbnail && p.thumbnail.source;
   const urlHistorico = `https://pt.wikipedia.org/w/index.php?title=${encodeURIComponent(p.title)}&action=history`;
 
-  c.replaceChildren(
+  c.replaceChildren(...[
     el("h2", { id: "titulo-detalhe", text: p.title }),
     wd?.cientifico ? el("p", { class: "cientifico", text: wd.cientifico }) : null,
-    foto ? el("img", { class: "foto-principal", src: foto, alt: p.title }) : null,
+    foto ? criarImgComFallback(foto, { class: "foto-principal", alt: p.title }, img => img.remove()) : null,
     blocoSom,
 
     ficha.length
@@ -905,6 +1014,14 @@ function renderizarDetalhe(c, p, imagens, wd) {
       el("button", {
         class: "chip ativo", type: "button", text: "⚖️ Comparar esta ave",
         onclick: () => { fecharDetalhe(); irParaComparador(p.title); }
+      }),
+      el("a", {
+        class: "chip",
+        href: `https://www.wikiaves.com.br/midias.php?t=b&s=${encodeURIComponent(p.title)}`,
+        target: "_blank",
+        rel: "noopener",
+        text: "📷 Ver no WikiAves",
+        style: "text-decoration:none;display:inline-flex;align-items:center;"
       }),
       ...(secoes.length ? [
         el("button", { class: "chip", type: "button", text: "Expandir tudo", onclick: () => blocoSecoes.querySelectorAll("details").forEach(x => { x.open = true; }) }),
@@ -918,7 +1035,7 @@ function renderizarDetalhe(c, p, imagens, wd) {
           el("h3", { text: "Imagens" }),
           el("div", { class: "galeria" }, imagens.map(i =>
             el("figure", {},
-              el("img", { src: i.miniatura, alt: i.titulo, loading: "lazy" }),
+              criarImgComFallback(i.miniatura, { alt: i.titulo, loading: "lazy" }, img => img.closest("figure")?.remove()),
               el("figcaption", { text: i.licenca ? `${i.titulo} (${i.licenca})` : i.titulo })))))
       : null,
 
@@ -931,7 +1048,7 @@ function renderizarDetalhe(c, p, imagens, wd) {
       el("a", { href: p.fullurl, target: "_blank", rel: "noopener", text: "Ver artigo original" }), " · ",
       el("a", { href: urlHistorico, target: "_blank", rel: "noopener", text: "Histórico e autores" }),
       ". Imagens via Wikimedia Commons.")
-  );
+  ].filter(Boolean));
 
   $("detalhe").scrollTop = 0;
 }
@@ -1226,6 +1343,50 @@ if (btnTema) {
     aplicarTema(!estaEscuro, true);
   });
 }
+
+/* ================== DESBLOQUEIO PELO MASCOTE (3 CLIQUES) ================== */
+(() => {
+  const mascoteBtn = $("mascote-botao");
+  if (!mascoteBtn) return;
+  let cliques = 0;
+  let timerReset = null;
+
+  const animarMascote = classe => {
+    mascoteBtn.classList.remove("mascote-pulso", "mascote-festa");
+    void mascoteBtn.offsetWidth;
+    mascoteBtn.classList.add(classe);
+    setTimeout(() => mascoteBtn.classList.remove(classe), 950);
+  };
+
+  const aoClicarMascote = () => {
+    cliques++;
+    clearTimeout(timerReset);
+    timerReset = setTimeout(() => { cliques = 0; }, 2500);
+
+    if (cliques >= 3) {
+      cliques = 0;
+      animarMascote("mascote-festa");
+      if (!jogosDesbloqueados) {
+        jogosDesbloqueados = true;
+        ["abas-divisor-jogos", "aba-jogos", "aba-desafio"].forEach(id => {
+          const node = $(id);
+          if (node) node.hidden = false;
+        });
+        notificar("🎉 Jogos e Desafio das Aves desbloqueados!");
+      }
+    } else {
+      animarMascote("mascote-pulso");
+    }
+  };
+
+  mascoteBtn.addEventListener("click", aoClicarMascote);
+  mascoteBtn.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      aoClicarMascote();
+    }
+  });
+})();
 
 /* ================== INÍCIO ================== */
 ligarCatalogo("catalogo-brasil", CATEGORIAS.brasil);

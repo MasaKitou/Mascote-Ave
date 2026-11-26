@@ -23,7 +23,7 @@
         <h1>Aves do Brasil<span>.</span></h1>
         <p class="sub">Da Caatinga à Amazônia: conheça as espécies que fazem do Brasil um lugar único.</p>
       </div>
-      <div class="ilustracao" aria-hidden="true"><span id="mascote-principal">🐦</span><i id="mascote-astro">✳</i></div>
+      <div class="ilustracao" id="mascote-botao" role="button" tabindex="0" aria-label="Mascote do guia — clique 3 vezes para desbloquear os jogos" title="Clique 3 vezes!"><span id="mascote-principal">🐦</span><i id="mascote-astro">✳</i></div>
     </div>
 
     <form id="form-busca" class="busca" role="search" aria-label="Buscar aves">
@@ -45,15 +45,15 @@
 
   <nav class="abas" role="tablist">
     <button class="aba" role="tab" data-aba="brasil" aria-controls="painel-brasil" aria-selected="true">🇧🇷 Brasil</button>
-    <button class="aba" role="tab" data-aba="norte" aria-controls="painel-norte" aria-selected="false">🌿 Norte</button>
     <button class="aba" role="tab" data-aba="nordeste" aria-controls="painel-nordeste" aria-selected="false">🌵 Nordeste</button>
+    <button class="aba" role="tab" data-aba="norte" aria-controls="painel-norte" aria-selected="false">🌿 Norte</button>
     <button class="aba" role="tab" data-aba="centro-oeste" aria-controls="painel-centro-oeste" aria-selected="false">🌾 Centro-Oeste</button>
     <button class="aba" role="tab" data-aba="sudeste" aria-controls="painel-sudeste" aria-selected="false">🌳 Sudeste</button>
     <button class="aba" role="tab" data-aba="sul" aria-controls="painel-sul" aria-selected="false">🧉 Sul</button>
     <button class="aba" role="tab" data-aba="comparador" aria-controls="painel-comparador" aria-selected="false">⚖️ Comparador</button>
-    <span class="abas-divisor" aria-hidden="true"></span>
-    <button class="aba aba-jogos" role="tab" data-aba="jogos" aria-controls="painel-jogos" aria-selected="false">🎮 Jogos</button>
-    <button class="aba aba-jogos" role="tab" data-aba="desafio" aria-controls="painel-desafio" aria-selected="false">🏆 Desafio das Aves</button>
+    <span class="abas-divisor" id="abas-divisor-jogos" aria-hidden="true" hidden></span>
+    <button class="aba aba-jogos" id="aba-jogos" role="tab" data-aba="jogos" aria-controls="painel-jogos" aria-selected="false" hidden>🎮 Jogos</button>
+    <button class="aba aba-jogos" id="aba-desafio" role="tab" data-aba="desafio" aria-controls="painel-desafio" aria-selected="false" hidden>🏆 Desafio das Aves</button>
     <button class="aba" role="tab" data-aba="busca" aria-controls="painel-busca" aria-selected="false" id="aba-busca" hidden>🔎 Resultados</button>
   </nav>
 
@@ -153,6 +153,7 @@
         <button class="jogo-tab" type="button" data-jogo="quiz">❓ Quem sou eu?</button>
         <button class="jogo-tab" type="button" data-jogo="quebra-cabeca">🧩 Quebra-Cabeça</button>
         <button class="jogo-tab" type="button" data-jogo="palavras">🔎 Caça-Palavras</button>
+        <button class="jogo-tab" type="button" data-jogo="termo">🟩 Termo das Aves</button>
       </div>
       <div id="palco-jogo" class="palco-jogo"></div>
     </section>
